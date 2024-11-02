@@ -27,7 +27,7 @@ warnings.filterwarnings('ignore')
 
 class csv_preprocess_picai():
     def __init__(self, cfg_path="/picai-segmentation/config/config.yaml"):
-        self.params = read_config(cfg_path)
+        pass
 
 
     def initial_csv_creator(self):
@@ -86,43 +86,85 @@ class csv_preprocess_picai():
         masterlist_df.to_csv(updated_masterlist_path, index=False)
 
 
+    def csv_selector_resampler_cropper(self, csv_path='/home/soroosh/Documents/datasets/PI-CAI/updated_masterlist.csv'):
+
+        df = pd.read_csv(csv_path)
+        base_path = '/home/soroosh/Documents/datasets/PI-CAI/picai_public'
+
+        for index, row in tqdm(df.iterrows(), total=len(df)):
+            filename = row['filename']
+            filename = filename.split('.nii.gz')[0]
+
+            img_base_path = os.path.join(base_path, filename.split('_')[0], filename)
+            t2w_path = img_base_path + "_t2w.mha"
+            adc_path = img_base_path + "_adc.mha"
+            hbv_path = img_base_path + "_hbv.mha"
+
+            resampled_adc, resampled_hbv, original_t2w = self.resampler(adc_path, hbv_path, t2w_path)
+
+            gland_segmentation_basepath = '/home/soroosh/Documents/datasets/PI-CAI/picai_labels-main/anatomical_delineations/whole_gland/AI/Guerbet23'
+            gland_segmentation_path = os.path.join(gland_segmentation_basepath, row['filename'])
+
+            if row['label'] == 'h':
+                cancer_segmentation_basepath = '/home/soroosh/Documents/datasets/PI-CAI/picai_labels-main/csPCa_lesion_delineations/human_expert/resampled'
+            elif row['label'] == 'a':
+                cancer_segmentation_basepath = '/home/soroosh/Documents/datasets/PI-CAI/picai_labels-main/csPCa_lesion_delineations/AI/Bosma22a'
+            cancer_segmentation_path = os.path.join(cancer_segmentation_basepath, row['filename'])
+
+            self.cropper(gland_segmentation_path, cancer_segmentation_path, resampled_adc, resampled_hbv, original_t2w)
 
 
 
 
-class Crop():
-    def __init__(self, cfg_path="/picai-segmentation/config/config.yaml"):
-        """
-        Cropping the all the images and segmentations around the brain
-        Parameters
-        ----------
-        cfg_path
-        """
-        pass
+    def resampler(self, adc_path, hbv_path, t2w_path):
+        t2w = sitk.ReadImage(t2w_path)
+        adc = sitk.ReadImage(adc_path)
+        hbv = sitk.ReadImage(hbv_path)
+
+        adc_resampler = sitk.ResampleImageFilter()
+        adc_resampler.SetReferenceImage(t2w)
+        adc_resampler.SetInterpolator(sitk.sitkLinear)
+        adc_resampler.SetOutputSpacing(t2w.GetSpacing())
+        adc_resampler.SetSize(t2w.GetSize())
+        adc_resampler.SetOutputDirection(t2w.GetDirection())
+        adc_resampler.SetOutputOrigin(t2w.GetOrigin())
+        resampled_adc = adc_resampler.Execute(adc)
+
+        hbv_resampler = sitk.ResampleImageFilter()
+        hbv_resampler.SetReferenceImage(t2w)
+        hbv_resampler.SetInterpolator(sitk.sitkLinear)
+        hbv_resampler.SetOutputSpacing(t2w.GetSpacing())
+        hbv_resampler.SetSize(t2w.GetSize())
+        hbv_resampler.SetOutputDirection(t2w.GetDirection())
+        hbv_resampler.SetOutputOrigin(t2w.GetOrigin())
+        resampled_hbv = hbv_resampler.Execute(hbv)
+
+        return resampled_adc, resampled_hbv, t2w
 
 
-    def cropper(self):
-        gland_segmentation_path = '/home/soroosh/Downloads/picai_labels-main/anatomical_delineations/whole_gland/AI/Bosma22b/10005_1000005.nii.gz'
-        cancer_segmentation_path = '/home/soroosh/Downloads/picai_labels-main/csPCa_lesion_delineations/human_expert/resampled/10005_1000005.nii.gz'
-        image_path = '/home/soroosh/Downloads/picai_public_images_fold4/10005/10005_1000005_t2w.mha'
+    def cropper(self, gland_segmentation_path, cancer_segmentation_path, resampled_adc, resampled_hbv, original_t2w):
 
-        patnum = os.path.basename(image_path).split('_')[0]
+        patnum = os.path.basename(gland_segmentation_path).split('_')[0]
 
-        output_base_path = '/home/soroosh/Documents/datasets/PI-CAI'
+        output_base_path = '/home/soroosh/Documents/datasets/PI-CAI/Final'
 
         os.makedirs(os.path.join(output_base_path, str(patnum)), exist_ok=True)
+        gland_segmentation_path_basename = os.path.basename(gland_segmentation_path)
 
-        original_image_path = os.path.join(output_base_path, str(patnum), os.path.basename(image_path).replace('t2w.mha', 't2w_original.mha'))
-        cropped_image_path = os.path.join(output_base_path, str(patnum), os.path.basename(image_path).replace('t2w.mha', 't2w_cropped.mha'))
+        original_image_path = os.path.join(output_base_path, str(patnum), gland_segmentation_path_basename.replace('.nii.gz', '_t2w_original.mha'))
+        cropped_t2w_path = os.path.join(output_base_path, str(patnum), gland_segmentation_path_basename.replace('.nii.gz', '_t2w_cropped.mha'))
+        cropped_adc_path = os.path.join(output_base_path, str(patnum), gland_segmentation_path_basename.replace('.nii.gz', '_adc_cropped.mha'))
+        cropped_hbv_path = os.path.join(output_base_path, str(patnum), gland_segmentation_path_basename.replace('.nii.gz', '_hbv_cropped.mha'))
+
         cropped_cancer_segmentation_path = os.path.join(output_base_path, str(patnum), os.path.basename(cancer_segmentation_path).replace('.nii.gz', '_cropped-label.nii.gz'))
-
         gland_segmentation = sitk.ReadImage(gland_segmentation_path)
         cancer_segmentation = sitk.ReadImage(cancer_segmentation_path)
-        img = sitk.ReadImage(image_path)
 
         gland_segmentation_array = sitk.GetArrayFromImage(gland_segmentation)
         cancer_segmentation_array = sitk.GetArrayFromImage(cancer_segmentation)
-        img_array = sitk.GetArrayFromImage(img)
+        adc_array = sitk.GetArrayFromImage(resampled_adc)
+        hbv_array = sitk.GetArrayFromImage(resampled_hbv)
+        t2w_array = sitk.GetArrayFromImage(original_t2w)
 
         indices = np.where(gland_segmentation_array == 1)
         min_x, max_x = np.min(indices[2]), np.max(indices[2])
@@ -130,24 +172,36 @@ class Crop():
 
         # Crop
         cropped_cancer_segmentation_array = cancer_segmentation_array[:, min_y:max_y + 1, min_x:max_x + 1]
-        cropped_img_array = img_array[:, min_y:max_y + 1, min_x:max_x + 1]
+        cropped_adc_array = adc_array[:, min_y:max_y + 1, min_x:max_x + 1]
+        cropped_hbv_array = hbv_array[:, min_y:max_y + 1, min_x:max_x + 1]
+        cropped_t2w_array = t2w_array[:, min_y:max_y + 1, min_x:max_x + 1]
 
         cropped_cancer_segmentation = sitk.GetImageFromArray(cropped_cancer_segmentation_array)
-        cropped_img = sitk.GetImageFromArray(cropped_img_array)
+        cropped_adc = sitk.GetImageFromArray(cropped_adc_array)
+        cropped_hbv = sitk.GetImageFromArray(cropped_hbv_array)
+        cropped_t2w = sitk.GetImageFromArray(cropped_t2w_array)
 
         cropped_cancer_segmentation.SetSpacing(cancer_segmentation.GetSpacing())
         cropped_cancer_segmentation.SetDirection(cancer_segmentation.GetDirection())
 
-        cropped_img.SetSpacing(img.GetSpacing())
-        cropped_img.SetDirection(img.GetDirection())
+        cropped_adc.SetSpacing(original_t2w.GetSpacing())
+        cropped_adc.SetDirection(original_t2w.GetDirection())
+        cropped_hbv.SetSpacing(original_t2w.GetSpacing())
+        cropped_hbv.SetDirection(original_t2w.GetDirection())
+        cropped_t2w.SetSpacing(original_t2w.GetSpacing())
+        cropped_t2w.SetDirection(original_t2w.GetDirection())
 
-        origin = img.TransformContinuousIndexToPhysicalPoint([float(min_x), float(min_y), 0.0])
-        cropped_img.SetOrigin(origin)
+        origin = original_t2w.TransformContinuousIndexToPhysicalPoint([float(min_x), float(min_y), 0.0])
+        cropped_adc.SetOrigin(origin)
+        cropped_hbv.SetOrigin(origin)
+        cropped_t2w.SetOrigin(origin)
         cropped_cancer_segmentation.SetOrigin(origin)
 
         sitk.WriteImage(cropped_cancer_segmentation, cropped_cancer_segmentation_path)
-        sitk.WriteImage(cropped_img, cropped_image_path)
-        sitk.WriteImage(img, original_image_path)
+        sitk.WriteImage(cropped_t2w, cropped_t2w_path)
+        sitk.WriteImage(cropped_adc, cropped_adc_path)
+        sitk.WriteImage(cropped_hbv, cropped_hbv_path)
+        sitk.WriteImage(original_t2w, original_image_path)
 
 
 
@@ -155,6 +209,5 @@ class Crop():
 
 
 if __name__ == '__main__':
-    # handler = csv_preprocess_picai()
-    cropclass = Crop()
-    cropclass.cropper()
+    handler = csv_preprocess_picai()
+    handler.csv_selector_resampler_cropper()
