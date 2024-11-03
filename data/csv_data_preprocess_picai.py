@@ -12,10 +12,9 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import nibabel as nib
-import random
-from math import ceil
 import glob
 import SimpleITK as sitk
+from sklearn.model_selection import train_test_split
 
 from config.serde import read_config
 
@@ -27,7 +26,8 @@ warnings.filterwarnings('ignore')
 
 class csv_preprocess_picai():
     def __init__(self, cfg_path="/picai-segmentation/config/config.yaml"):
-        pass
+        self.params = read_config(cfg_path)
+
 
 
     def initial_csv_creator(self):
@@ -86,10 +86,11 @@ class csv_preprocess_picai():
         masterlist_df.to_csv(updated_masterlist_path, index=False)
 
 
-    def csv_selector_resampler_cropper(self, csv_path='/home/soroosh/Documents/datasets/PI-CAI/updated_masterlist.csv'):
+
+    def csv_selector_resampler_cropper(self, csv_path='/PI-CAI/updated_masterlist.csv'):
 
         df = pd.read_csv(csv_path)
-        base_path = '/home/soroosh/Documents/datasets/PI-CAI/picai_public'
+        base_path = os.path.join(self.params['file_path'], 'picai_public')
 
         for index, row in tqdm(df.iterrows(), total=len(df)):
             filename = row['filename']
@@ -112,7 +113,6 @@ class csv_preprocess_picai():
             cancer_segmentation_path = os.path.join(cancer_segmentation_basepath, row['filename'])
 
             self.cropper(gland_segmentation_path, cancer_segmentation_path, resampled_adc, resampled_hbv, original_t2w)
-
 
 
 
@@ -146,7 +146,7 @@ class csv_preprocess_picai():
 
         patnum = os.path.basename(gland_segmentation_path).split('_')[0]
 
-        output_base_path = '/home/soroosh/Documents/datasets/PI-CAI/Final'
+        output_base_path = os.path.join(self.params['file_path'], 'Final')
 
         os.makedirs(os.path.join(output_base_path, str(patnum)), exist_ok=True)
         gland_segmentation_path_basename = os.path.basename(gland_segmentation_path)
@@ -204,10 +204,84 @@ class csv_preprocess_picai():
         sitk.WriteImage(original_t2w, original_image_path)
 
 
+    def csv_splitter(self):
+        file_path = os.path.join(self.params['file_path'], 'updated_masterlist.csv')
+
+        data = pd.read_csv(file_path)
+        data_h = data[data['label'] == 'h']
+        data_a = data[data['label'] == 'a']
+
+        # for human label
+        train_h, test_h = train_test_split(data_h, test_size=0.2, random_state=42)
+        train_h['subset'] = 'train'
+        test_h['subset'] = 'test'
+
+        # for AI label
+        train_a, test_a = train_test_split(data_a, test_size=0.2, random_state=42)
+        train_a['subset'] = 'train'
+        test_a['subset'] = 'test'
+
+        split_data = pd.concat([train_h, test_h, train_a, test_a]).sort_index()
+        split_data.to_csv(file_path, index=False)
+
+
+    def csv_splitter_validadder(self):
+        file_path = os.path.join(self.params['file_path'], 'final_masterlist.csv')
+
+        data = pd.read_csv(file_path)
+        data_test = data[data['subset'] == 'test']
+        data = data[data['subset'] == 'train']
+        data_h = data[data['label'] == 'h']
+        data_a = data[data['label'] == 'a']
+
+        # for human label
+        train_h, test_h = train_test_split(data_h, test_size=0.1, random_state=42)
+        train_h['subset'] = 'train'
+        test_h['subset'] = 'valid'
+
+        # for AI label
+        train_a, test_a = train_test_split(data_a, test_size=0.1, random_state=42)
+        train_a['subset'] = 'train'
+        test_a['subset'] = 'valid'
+
+        split_data = pd.concat([train_h, test_h, train_a, test_a, data_test]).sort_index()
+        split_data.to_csv(file_path, index=False)
+
+
+
+    def csv_cropped_dim_adder(self, csv_path='/PI-CAI/updated_masterlist.csv'):
+        df = pd.read_csv(csv_path)
+        base_path = self.params['file_path']
+        final_df_output_path = os.path.join(self.params['file_path'], 'final_masterlist.csv')
+
+        final_df = pd.DataFrame([])
+
+        for index, row in tqdm(df.iterrows(), total=len(df)):
+            filename = row['filename']
+            filename = filename.split('.nii.gz')[0]
+
+            img_base_path = os.path.join(base_path, filename.split('_')[0], filename)
+            t2w_path = img_base_path + "_t2w_cropped.mha"
+            t2w = sitk.ReadImage(t2w_path)
+            t2w_array = sitk.GetArrayFromImage(t2w)
+
+            dim1, dim2, dim3 = t2w_array.shape
+
+            tempp = pd.DataFrame([[row['filename'], row['Dim1'], row['Dim2'], row['Dim3'],
+                  row['label'], row['subset'], dim1, dim2, dim3]],
+                columns=['filename', 'org_dim1', 'org_dim2', 'org_dim3', 'label', 'subset', 'cropped_dim1', 'cropped_dim2', 'cropped_dim3'])
+            final_df = final_df.append(tempp)
+            final_df.to_csv(final_df_output_path, sep=',', index=False)
+
+
+        final_df = final_df.sort_values(by='filename')
+        final_df.to_csv(final_df_output_path, sep=',', index=False)
 
 
 
 
 if __name__ == '__main__':
-    handler = csv_preprocess_picai()
-    handler.csv_selector_resampler_cropper()
+    handler = csv_preprocess_picai(cfg_path="/home/soroosh/Documents/Repositories/picai-segmentation/config/config.yaml")
+    # handler.csv_selector_resampler_cropper(csv_path='/home/soroosh/Documents/datasets/PI-CAI/updated_masterlist.csv')
+    # handler.csv_cropped_dim_adder(csv_path='/home/soroosh/Documents/datasets/PI-CAI/updated_masterlist.csv')
+    handler.csv_splitter_validadder()
