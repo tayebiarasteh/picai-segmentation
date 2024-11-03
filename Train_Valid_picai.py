@@ -202,7 +202,9 @@ class Training:
 
                 # if we would like to have data augmentation during training
                 if self.augment:
-                    image, label = random_augment(image, label, self.cfg_path)
+                    image, label = random_augment(image, label.unsqueeze(1), self.cfg_path)
+                    label = label.squeeze(1)
+                    label = label.float()
 
                 image = image.to(self.device)
                 label = label.to(self.device)
