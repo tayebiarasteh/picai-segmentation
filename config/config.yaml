@@ -1,9 +1,9 @@
 Network:
   batch_size: 8
   batch_size_testvlid: 1
-  lr: 1e-4
-  weight_decay: 0
-  amsgrad: False
+  lr: 3e-4
+  weight_decay: 1e-5
+  amsgrad: True
 augmentation:
   patch_size: [21, 95, 120] # (median values)
   general_spatial_probability: 0.5 # probability of having spatial data augmentation at all

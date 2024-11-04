@@ -136,6 +136,7 @@ def main_evaluate_3D(global_config_path="picai-segmentation/config/config.yaml",
 
 
 
+
 def main_evaluate_3D_bootstrap_pvalue(global_config_path="picai-segmentation/config/config.yaml", experiment_name1='central_exp_for_test',
                                       experiment_name2='central_exp_for_test', experiment1_epoch_num=100, experiment2_epoch_num=100, modality=1, multimodal1=True, multimodal2=True):
     """Evaluation for all the images using the labels and calculating metrics.

@@ -54,7 +54,8 @@ class data_loader_3D(Dataset):
         self.multimodal = multimodal
         self.mode = mode
 
-        org_df = pd.read_csv(os.path.join(self.file_base_dir, "final_masterlist.csv"), sep=',')
+        # org_df = pd.read_csv(os.path.join(self.file_base_dir, "final_masterlist.csv"), sep=',')
+        org_df = pd.read_csv(os.path.join(self.file_base_dir, "final_masterlist_short.csv"), sep=',')
 
         if mode=='train':
             self.subset_df = org_df[org_df['subset'] == 'train']

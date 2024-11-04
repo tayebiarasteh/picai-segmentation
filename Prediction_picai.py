@@ -261,13 +261,14 @@ class Prediction:
         sensitivity_list = np.stack(sensitivity_list)
         precision_list = np.stack(precision_list)
 
+
         print('------------------------------------------------------'
               '----------------------------------')
         print('\t experiment:' + self.params['experiment_name'] + '\n')
 
-        print(f'\t Dice: {F1_list.mean() * 100:.2f}% ± {F1_list.std() * 100:.2f} | Accuracy: {accuracy_list.mean() * 100:.2f}% ± {accuracy_list.std() * 100:.2f}'
-              f' | Specificity: {specificity_list.mean() * 100:.2f}% ± {specificity_list.std() * 100:.2f}'
-              f' | Sensitivity (Recall): {sensitivity_list.mean() * 100:.2f}% ± {sensitivity_list.std() * 100:.2f} | Precision: {precision_list.mean() * 100:.2f}% ± {precision_list.std() * 100:.2f}\n')
+        print(f'\t Dice: {F1_list.mean() * 100:.2f}% ± {F1_list.std() * 100:.2f} [{np.percentile(F1_list, 2.5) * 100:.2f}%, {np.percentile(F1_list, 97.5) * 100:.2f}%] | Accuracy: {accuracy_list.mean() * 100:.2f}% ± {accuracy_list.std() * 100:.2f} [{np.percentile(accuracy_list, 2.5) * 100:.2f}%, {np.percentile(accuracy_list, 97.5) * 100:.2f}%] '
+              f' | Specificity: {specificity_list.mean() * 100:.2f}% ± {specificity_list.std() * 100:.2f} [{np.percentile(specificity_list, 2.5) * 100:.2f}%, {np.percentile(specificity_list, 97.5) * 100:.2f}%] '
+              f' | Sensitivity (Recall): {sensitivity_list.mean() * 100:.2f}% ± {sensitivity_list.std() * 100:.2f} [{np.percentile(sensitivity_list, 2.5) * 100:.2f}%, {np.percentile(sensitivity_list, 97.5) * 100:.2f}%]  | Precision: {precision_list.mean() * 100:.2f}% ± {precision_list.std() * 100:.2f} [{np.percentile(precision_list, 2.5) * 100:.2f}%, {np.percentile(precision_list, 97.5) * 100:.2f}%] \n')
 
         print('------------------------------------------------------'
               '----------------------------------')
@@ -275,9 +276,9 @@ class Prediction:
         # saving the stats
         msg = f'\n\n----------------------------------------------------------------------------------------\n' \
               '\t experiment:' + self.params['experiment_name'] + '\n\n' \
-              f'Dice: {F1_list.mean() * 100:.2f}% ± {F1_list.std() * 100:.2f} | Accuracy: {accuracy_list.mean() * 100:.2f}% ± {accuracy_list.std() * 100:.2f} ' \
-              f' | Specificity: {specificity_list.mean() * 100:.2f}% ± {specificity_list.std() * 100:.2f}' \
-              f' | Sensitivity (Recall): {sensitivity_list.mean() * 100:.2f}% ± {sensitivity_list.std() * 100:.2f} | Precision: {precision_list.mean() * 100:.2f}% ± {precision_list.std() * 100:.2f}\n\n'
+              f'\t Dice: {F1_list.mean() * 100:.2f}% ± {F1_list.std() * 100:.2f} [{np.percentile(F1_list, 2.5) * 100:.2f}%, {np.percentile(F1_list, 97.5) * 100:.2f}%] | Accuracy: {accuracy_list.mean() * 100:.2f}% ± {accuracy_list.std() * 100:.2f} [{np.percentile(accuracy_list, 2.5) * 100:.2f}%, {np.percentile(accuracy_list, 97.5) * 100:.2f}%] ' \
+              f' | Specificity: {specificity_list.mean() * 100:.2f}% ± {specificity_list.std() * 100:.2f} [{np.percentile(specificity_list, 2.5) * 100:.2f}%, {np.percentile(specificity_list, 97.5) * 100:.2f}%] ' \
+              f' | Sensitivity (Recall): {sensitivity_list.mean() * 100:.2f}% ± {sensitivity_list.std() * 100:.2f} [{np.percentile(sensitivity_list, 2.5) * 100:.2f}%, {np.percentile(sensitivity_list, 97.5) * 100:.2f}%]  | Precision: {precision_list.mean() * 100:.2f}% ± {precision_list.std() * 100:.2f} [{np.percentile(precision_list, 2.5) * 100:.2f}%, {np.percentile(precision_list, 97.5) * 100:.2f}%] \n\n'
 
         with open(os.path.join(self.params['target_dir'], self.params['stat_log_path']) + '/test_Stats', 'a') as f:
             f.write(msg)
