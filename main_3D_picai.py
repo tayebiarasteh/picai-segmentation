@@ -94,7 +94,7 @@ def main_train_3D(global_config_path="picai-segmentation/config/config.yaml", va
 
 
 
-def main_evaluate_3D(global_config_path="picai-segmentation/config/config.yaml", experiment_name='name', modelepoch=2):
+def main_evaluate_3D(global_config_path="picai-segmentation/config/config.yaml", experiment_name='name', modelepoch=2, modality=1, multimodal=True):
     """Evaluation for all the images using the labels and calculating metrics.
 
     Parameters
@@ -104,14 +104,17 @@ def main_evaluate_3D(global_config_path="picai-segmentation/config/config.yaml",
     """
     params = open_experiment(experiment_name, global_config_path)
     cfg_path = params['cfg_path']
-    model = UNet3D(n_out_classes=1, firstdim=48)
+    if multimodal:
+        model = UNet3D(n_in_channels=3, n_out_classes=1, firstdim=48)
+    else:
+        model = UNet3D(n_in_channels=1, n_out_classes=1, firstdim=48)
 
     # Initialize prediction
     predictor = Prediction(cfg_path)
     predictor.setup_model(model=model, modelepoch=modelepoch)
 
     # Generate test set
-    test_dataset = data_loader_3D(cfg_path=cfg_path, mode='test')
+    test_dataset = data_loader_3D(cfg_path=cfg_path, mode='test', modality=modality, multimodal=multimodal)
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=params['Network']['batch_size_testvlid'],
                                                pin_memory=True, drop_last=False, shuffle=False, num_workers=16)
 
@@ -133,7 +136,6 @@ def main_evaluate_3D(global_config_path="picai-segmentation/config/config.yaml",
 
     with open(os.path.join(params['target_dir'], params['stat_log_path']) + '/test_results', 'a') as f:
         f.write(msg)
-
 
 
 
@@ -203,8 +205,7 @@ def main_evaluate_3D_bootstrap_pvalue(global_config_path="picai-segmentation/con
 
 
 
-
-def main_predict_3D(global_config_path="picai-segmentation/config/config.yaml", experiment_name='name', modelepoch=2):
+def main_predict_3D(global_config_path="picai-segmentation/config/config.yaml", experiment_name='name', modelepoch=2, modality=1, multimodal=True):
     """Evaluation for all the images using the labels and calculating metrics.
 
     Parameters
@@ -214,14 +215,17 @@ def main_predict_3D(global_config_path="picai-segmentation/config/config.yaml", 
     """
     params = open_experiment(experiment_name, global_config_path)
     cfg_path = params['cfg_path']
-    model = UNet3D(n_out_classes=1, firstdim=48)
+    if multimodal:
+        model = UNet3D(n_in_channels=3, n_out_classes=1, firstdim=48)
+    else:
+        model = UNet3D(n_in_channels=1, n_out_classes=1, firstdim=48)
 
     # Initialize prediction
     predictor = Prediction(cfg_path)
     predictor.setup_model(model=model, modelepoch=modelepoch)
 
     # Generate test set
-    test_dataset = data_loader_without_label_3D(cfg_path=cfg_path)
+    test_dataset = data_loader_without_label_3D(cfg_path=cfg_path, modality=modality, multimodal=multimodal)
 
 
     file_base_dir = params['file_path']

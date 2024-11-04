@@ -55,6 +55,7 @@ class data_loader_3D(Dataset):
         self.mode = mode
 
         # org_df = pd.read_csv(os.path.join(self.file_base_dir, "final_masterlist.csv"), sep=',')
+        # org_df = pd.read_csv(os.path.join(self.file_base_dir, "final_masterlist_novalid.csv"), sep=',')
         org_df = pd.read_csv(os.path.join(self.file_base_dir, "final_masterlist_short.csv"), sep=',')
 
         if mode=='train':
@@ -211,7 +212,7 @@ class data_loader_without_label_3D():
     """
     This is the pipeline based on Pytorch's Dataset and Dataloader
     """
-    def __init__(self, cfg_path):
+    def __init__(self, cfg_path, modality=1, multimodal=True):
         """
         Parameters
         ----------
@@ -223,6 +224,8 @@ class data_loader_without_label_3D():
         self.cfg_path = cfg_path
         self.params = read_config(cfg_path)
         self.file_base_dir = self.params['file_path']
+        self.modality = int(modality)
+        self.multimodal = multimodal
 
 
 
@@ -242,32 +245,50 @@ class data_loader_without_label_3D():
         label_array = label_array.astype(np.int) # (d, h, w)
         label_array = np.where(label_array > 1, 1, label_array)
 
-        t2w_path = img_base_path + "_t2w_cropped.mha"
-        adc_path = img_base_path + "_adc_cropped.mha"
-        hbv_path = img_base_path + "_hbv_cropped.mha"
+        if self.multimodal:
+            t2w_path = img_base_path + "_t2w_cropped.mha"
+            adc_path = img_base_path + "_adc_cropped.mha"
+            hbv_path = img_base_path + "_hbv_cropped.mha"
 
-        t2w = sitk.ReadImage(t2w_path)
-        t2w_array = sitk.GetArrayFromImage(t2w)  # (d, h, w)
+            t2w = sitk.ReadImage(t2w_path)
+            t2w_array = sitk.GetArrayFromImage(t2w)  # (d, h, w)
 
-        adc = sitk.ReadImage(adc_path)
-        adc_array = sitk.GetArrayFromImage(adc)  # (d, h, w)
+            adc = sitk.ReadImage(adc_path)
+            adc_array = sitk.GetArrayFromImage(adc)  # (d, h, w)
 
-        hbv = sitk.ReadImage(hbv_path)
-        hbv_array = sitk.GetArrayFromImage(hbv)  # (d, h, w)
+            hbv = sitk.ReadImage(hbv_path)
+            hbv_array = sitk.GetArrayFromImage(hbv)  # (d, h, w)
 
-        # normalization
-        normalized_t2w = self.irm_min_max_preprocess(t2w_array.transpose(1, 2, 0))  # (h, w, d)
-        normalized_t2w = normalized_t2w.transpose(2, 0, 1)  # (d, h, w)
+            # normalization
+            normalized_t2w = self.irm_min_max_preprocess(t2w_array.transpose(1, 2, 0))  # (h, w, d)
+            normalized_t2w = normalized_t2w.transpose(2, 0, 1)  # (d, h, w)
 
-        normalized_adc = self.irm_min_max_preprocess(adc_array.transpose(1, 2, 0))  # (h, w, d)
-        normalized_adc = normalized_adc.transpose(2, 0, 1)  # (d, h, w)
+            normalized_adc = self.irm_min_max_preprocess(adc_array.transpose(1, 2, 0))  # (h, w, d)
+            normalized_adc = normalized_adc.transpose(2, 0, 1)  # (d, h, w)
 
-        normalized_hbv = self.irm_min_max_preprocess(hbv_array.transpose(1, 2, 0))  # (h, w, d)
-        normalized_hbv = normalized_hbv.transpose(2, 0, 1)  # (d, h, w)
+            normalized_hbv = self.irm_min_max_preprocess(hbv_array.transpose(1, 2, 0))  # (h, w, d)
+            normalized_hbv = normalized_hbv.transpose(2, 0, 1)  # (d, h, w)
 
-        normalized_img_resized = np.stack((normalized_t2w, normalized_adc, normalized_hbv))  # (c=3, d, h, w)
-        normalized_img_resized = torch.from_numpy(normalized_img_resized)  # (c=3, d, h, w)
+            normalized_img_resized = np.stack((normalized_t2w, normalized_adc, normalized_hbv))  # (c=3, d, h, w)
+            normalized_img_resized = torch.from_numpy(normalized_img_resized)  # (c=3, d, h, w)
 
+        else:
+            if self.modality == 1:
+                path_file = img_base_path + "_t2w_cropped.mha"
+            elif self.modality == 2:
+                path_file = img_base_path + "_adc_cropped.mha"
+            elif self.modality == 3:
+                path_file = img_base_path + "_hbv_cropped.mha"
+
+            img = sitk.ReadImage(path_file)
+            img_array = sitk.GetArrayFromImage(img)  # (d, h, w)
+            # normalization
+            normalized_img = self.irm_min_max_preprocess(img_array.transpose(1, 2, 0))  # (h, w, d)
+            normalized_img = normalized_img.transpose(2, 0, 1)  # (d, h, w)
+
+            normalized_img_resized = normalized_img
+            normalized_img_resized = torch.from_numpy(normalized_img_resized)  # (d, h, w)
+            normalized_img_resized = torch.unsqueeze(normalized_img_resized, 0)  # (c=1, d, h, w)
 
         label = torch.from_numpy(label_array)  # (d, h, w)
 
@@ -326,3 +347,4 @@ class data_loader_without_label_3D():
         image = (image - min_) / scale
 
         return image
+
