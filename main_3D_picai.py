@@ -247,12 +247,4 @@ def main_predict_3D(global_config_path="picai-segmentation/config/config.yaml", 
 
 
 if __name__ == '__main__':
-    global_config_path = "/home/soroosh/Documents/Repositories/picai-segmentation/config/config.yaml"
-    # delete_experiment(global_config_path=global_config_path, experiment_name='name_noaugment')
-    # main_train_3D(global_config_path=global_config_path, valid=True, resume=False, augment=True, experiment_name='name_noaugmen2')
-
-    # main_evaluate_3D(global_config_path=global_config_path, experiment_name='name_noaugment', modelepoch=2)
-    # main_predict_3D(global_config_path=global_config_path, experiment_name='name_noaugment', modelepoch=2)
-
-    main_evaluate_3D_bootstrap_pvalue(global_config_path=global_config_path, experiment_name1='name_noaugment', experiment1_epoch_num=2,
-                                      experiment_name2='name_noaugmen2', experiment2_epoch_num=2, multimodal1=True, multimodal2=True)
+    global_config_path = "/PATH"
