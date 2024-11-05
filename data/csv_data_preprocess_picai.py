@@ -34,7 +34,7 @@ class csv_preprocess_picai():
         """Only include the ones that have cancer segmentation, both human and AI"""
 
         # Human
-        file_path = '/home/soroosh/Downloads/picai_labels-main/csPCa_lesion_delineations/human_expert/resampled/*.nii.gz'
+        file_path = '/PATH/*.nii.gz'
 
         file_list = glob.glob(file_path)
         filtered_files = []
@@ -50,12 +50,12 @@ class csv_preprocess_picai():
 
         df = df.sort_values(by='filename')
 
-        output_csv = '/home/soroosh/Downloads/picai_labels-main/csPCa_lesion_delineations/human_expert/resampled_maserlist.csv'
+        output_csv = '/PATH.csv'
         df.to_csv(output_csv, index=False)
 
 
         # AI
-        file_path = '/home/soroosh/Downloads/picai_labels-main/csPCa_lesion_delineations/AI/Bosma22a/*.nii.gz'
+        file_path = '/PATH/*.nii.gz'
 
         file_list = glob.glob(file_path)
         filtered_files = []
@@ -72,17 +72,17 @@ class csv_preprocess_picai():
 
         df = df.sort_values(by='filename')
 
-        output_csv = '/home/soroosh/Downloads/picai_labels-main/csPCa_lesion_delineations/AI/AI_maserlist.csv'
+        output_csv = '/PATH.csv'
         df.to_csv(output_csv, index=False)
 
         # combine them
-        masterlist_df = pd.read_csv('/home/soroosh/Downloads/picai_labels-main/csPCa_lesion_delineations/AI/AI_maserlist.csv')
-        resampled_masterlist_df = pd.read_csv('/home/soroosh/Downloads/picai_labels-main/csPCa_lesion_delineations/human_expert/resampled_maserlist.csv')
+        masterlist_df = pd.read_csv('/PATH.csv')
+        resampled_masterlist_df = pd.read_csv('/PATH.csv')
         resampled_filenames = set(resampled_masterlist_df['filename'])
 
         masterlist_df['label'] = masterlist_df['filename'].apply(lambda x: 'h' if x in resampled_filenames else 'a')
 
-        updated_masterlist_path = '/home/soroosh/Downloads/picai_labels-main/csPCa_lesion_delineations/human_expert/updated_maserlist.csv'
+        updated_masterlist_path = '/PATH.csv'
         masterlist_df.to_csv(updated_masterlist_path, index=False)
 
 
@@ -103,13 +103,13 @@ class csv_preprocess_picai():
 
             resampled_adc, resampled_hbv, original_t2w = self.resampler(adc_path, hbv_path, t2w_path)
 
-            gland_segmentation_basepath = '/home/soroosh/Documents/datasets/PI-CAI/picai_labels-main/anatomical_delineations/whole_gland/AI/Guerbet23'
+            gland_segmentation_basepath = '/PATH'
             gland_segmentation_path = os.path.join(gland_segmentation_basepath, row['filename'])
 
             if row['label'] == 'h':
-                cancer_segmentation_basepath = '/home/soroosh/Documents/datasets/PI-CAI/picai_labels-main/csPCa_lesion_delineations/human_expert/resampled'
+                cancer_segmentation_basepath = '/PATH'
             elif row['label'] == 'a':
-                cancer_segmentation_basepath = '/home/soroosh/Documents/datasets/PI-CAI/picai_labels-main/csPCa_lesion_delineations/AI/Bosma22a'
+                cancer_segmentation_basepath = '/PATH'
             cancer_segmentation_path = os.path.join(cancer_segmentation_basepath, row['filename'])
 
             self.cropper(gland_segmentation_path, cancer_segmentation_path, resampled_adc, resampled_hbv, original_t2w)

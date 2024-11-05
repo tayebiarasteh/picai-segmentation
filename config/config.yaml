@@ -38,7 +38,7 @@ trained_model_name: trained_model.pth
 
 
 # changeable items:
-file_path: /home/soroosh/Documents/datasets/PI-CAI/
-target_dir: /home/soroosh/Documents/Repositories_target_files/picai-segmentation/
+file_path: /PATH/
+target_dir: /PATH/
 display_stats_freq: 1 # valid freq is equal to this
 num_epochs: 150
